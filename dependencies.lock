@@ -1,0 +1,65 @@
+dependencies:
+  espressif/mqtt:
+    component_hash: ffdad5659706b4dc14bc63f8eb73ef765efa015bf7e9adf71c813d52a2dc9342
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.3'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.0.0
+  gpioManagement:
+    dependencies: []
+    source:
+      path: /home/laggenerator/Whole_lotta_shit/Programmin/Mikroprocesory/ESP/ESP32-Homecenter/components/gpioManagement
+      type: local
+    version: '*'
+  i2ctest:
+    dependencies: []
+    source:
+      path: /home/laggenerator/Whole_lotta_shit/Programmin/Mikroprocesory/ESP/ESP32-Homecenter/components/i2ctest
+      type: local
+    version: '*'
+  idf:
+    source:
+      type: idf
+    version: 5.5.1
+  mqtt_handler:
+    dependencies:
+    - name: idf
+      version: '>=4.1.0'
+    source:
+      path: /home/laggenerator/Whole_lotta_shit/Programmin/Mikroprocesory/ESP/ESP32-Homecenter/components/mqtt_handler
+      type: local
+    version: '*'
+  protocol_examples_common:
+    dependencies: []
+    source:
+      path: /home/laggenerator/esp/esp-idf-v5.5.1/examples/common_components/protocol_examples_common
+      type: local
+    version: '*'
+  ssd1306:
+    dependencies: []
+    source:
+      path: /home/laggenerator/Whole_lotta_shit/Programmin/Mikroprocesory/ESP/ESP32-Homecenter/components/ssd1306
+      type: local
+    version: '*'
+  wifi:
+    dependencies: []
+    source:
+      path: /home/laggenerator/Whole_lotta_shit/Programmin/Mikroprocesory/ESP/ESP32-Homecenter/components/wifi
+      type: local
+    version: '*'
+direct_dependencies:
+- espressif/mqtt
+- gpioManagement
+- i2ctest
+- idf
+- mqtt_handler
+- protocol_examples_common
+- ssd1306
+- wifi
+manifest_hash: 495d0b189f6d6ead797deadd442610cca1967559ff6be009e23d3f0d927ead32
+target: esp32
+version: 2.0.0

@@ -1,0 +1,29 @@
+menu "Ustawienia rodziny MQTT"
+
+config MQTT_NAZWA_RODZINY
+  string "Rodzina MQTT"
+  default "zmienmnie"
+  help
+    Ustaw rodzinę MQTT aby obsługiwać swoje urządzenia
+
+config MQTT_KANAL_KEEPALIVE
+  string "Temat MQTT do przesyłania keepAlive"
+  default "status"
+  help
+    Ustaw temat do przesyłania keep-alive do brokera.
+    Pełny temat to: rodzina/tematkeepalive
+
+config MQTT_NAZWA_URZADZENIA
+  string "Nazwa urzadzenia do identyfikacji"
+  default "zmienmnie"
+  help
+    Ustaw nazwę urządzenia, aby wiedzieć na co reagować
+
+config MQTT_MASTER
+  bool "1 = master, 0 = slave"
+  default n
+  help
+    Ustaw typ urządzenia.
+    1 = master, 0 = slave
+
+endmenu

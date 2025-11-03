@@ -1,0 +1,93 @@
+menu "WiFi STA Config"
+
+    config WIFI_STA_CONNECT
+        bool "Polacz sie z WiFi"
+        default n
+        help
+            Wlacza driver WiFi aby pozwolic na polaczenie z siecia
+
+    if WIFI_STA_CONNECT
+        choice WIFI_STA_IP_TYPE
+            prompt "Ktora wersja protokolu IP"
+            default WIFI_STA_CONNECT_IPV4
+            help
+                Wybierz tryb polaczenia.
+            config WIFI_STA_CONNECT_IPV4
+                bool "IPv4"
+                select LWIP_IPV4
+                help
+                    Uzyj jedynie IPv4.
+            config WIFI_STA_CONNECT_IPV6
+                bool "IPv6"
+                select LWIP_IPV6
+                help
+                    Uzyj jedynie IPv6.
+            config WIFI_STA_CONNECT_UNSPECIFIED
+                bool "Either IPv4 or IPv6"
+                select LWIP_IPV4
+                select LWIP_IPV6
+                help
+                    Uzyj obojetnie ktorego.
+        endchoice
+
+        choice WIFI_STA_AUTH_MODE
+            prompt "Minimum WiFi authentication mode"
+            default WIFI_STA_AUTH_WPA2_PSK
+            help
+              Najslabsza wersja uwierzytelniania ktorej sprobuje ESP.
+            config WIFI_STA_AUTH_OPEN
+                bool "OPEN"
+            config WIFI_STA_AUTH_WEP
+                bool "WEP"
+            config WIFI_STA_AUTH_WPA_PSK
+                bool "WPA PSK"
+            config WIFI_STA_AUTH_WPA2_PSK
+                bool "WPA2 PSK"
+            config WIFI_STA_AUTH_WPA_WPA2_PSK
+                bool "WPA/WPA2 PSK"
+            config WIFI_STA_AUTH_WPA3_PSK
+                bool "WPA3 PSK"
+            config WIFI_STA_AUTH_WPA2_WPA3_PSK
+                bool "WPA2/WPA3 PSK"
+            config WIFI_STA_AUTH_WAPI_PSK
+                bool "WAPI PSK"
+        endchoice
+
+        config WIFI_STA_SSID
+            string "WiFi SSID"
+            default "Twoj SSID"
+            help
+                Nazwa sieci z ktora ma sie laczyc
+
+        config WIFI_STA_PASSWORD
+            string "WiFi password"
+            default "Twoje haslo"
+
+        choice WIFI_STA_WPA3_SAE_MODE
+            prompt "SAE mode for WPA3"
+            default WIFI_STA_WPA3_SAE_PWE_BOTH
+            help
+                Select SAE mode as Hunt and Peck, H2E, or both.
+            config WIFI_STA_WPA3_SAE_PWE_HUNT_AND_PECK
+                bool "Hunt and Peck"
+            config WIFI_STA_WPA3_SAE_PWE_H2E
+                bool "Hash to Element (H2E)"
+            config WIFI_STA_WPA3_SAE_PWE_BOTH
+                bool "Both"
+        endchoice
+
+        config WIFI_STA_WPA3_PASSWORD_ID
+            string "Password identifier for SAE H2E"
+            depends on WIFI_STA_WPA3_SAE_PWE_H2E || WIFI_STA_WPA3_SAE_PWE_BOTH
+            default ""
+            help
+                Password identifier for SAE H2E mode.
+
+        config WIFI_STA_AUTO_RECONNECT
+            bool "Automatycznie probuj polaczyc sie z powrotem"
+            default n
+            help
+              Automatycznie laczy sie z powrotem po rozlaczeniu.
+
+    endif
+endmenu

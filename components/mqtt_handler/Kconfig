@@ -1,0 +1,25 @@
+menu "MQTT Config"
+    config BROKER_URL
+        string "Broker URL"
+        default ""
+        help
+            URL brokera MQTT
+
+    config MQTT_USERNAME
+        string "Nazwa uzytkownika MQTT"
+        default ""
+        help
+            Nazwa uzytkownika do autoryzacji MQTT (pozostaw puste jesli nie wymagane)
+
+    config MQTT_PASSWORD
+        string "Haslo MQTT"
+        default ""
+        help
+            Haslo do autoryzacji MQTT (pozostaw puste jesli nie wymagane)
+
+    config BROKER_URL_FROM_STDIN
+        bool "Pobierz URL brokera z konsoli"
+        default n
+        help
+            Jesli wlaczone, URL brokera bedzie pobierany z konsoli zamiast z konfiguracji
+endmenu
