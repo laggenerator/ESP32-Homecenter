@@ -1,12 +1,12 @@
 dependencies:
   espressif/esp_hosted:
     rules:
-    - if: target in [esp32p4, esp32h2]
+      - if: target in [esp32p4, esp32h2]
     version: 2.5.1
   espressif/esp_wifi_remote:
     rules:
-    - if: target in [esp32p4, esp32h2]
-    version: '>=0.10,<2.0'
+      - if: target in [esp32p4, esp32h2]
+    version: ">=0.10,<2.0"
   mqtt_handler:
     path: ../components/mqtt_handler
   i2ctest:
@@ -15,6 +15,8 @@ dependencies:
     path: ../components/wifi
   ssd1306:
     path: ../components/ssd1306
+  guiDraw:
+    path: ../components/guiDraw
   gpioManagement:
     path: ../components/gpioManagement
   protocol_examples_common:

@@ -190,3 +190,103 @@ void oled_print(uint8_t page, uint8_t column, const char *str) {
         column += 5 + 1;
     }
 }
+
+void oled_draw_bitmap(uint8_t x, uint8_t y, const uint8_t *bitmap, uint8_t width, uint8_t height) {
+    uint8_t pages = (height + 7) / 8;
+
+    for (uint8_t page = 0; page < pages; page++) {
+        oled_set_cursor(y / 8 + page, x);
+
+        // Każdy bajt to 8 pionowych pikseli
+        i2c_write(oled_dev, width, 0x40, bitmap + (page * width));
+    }
+}
+
+
+void oled_print_char_xy(uint8_t x, uint8_t y, char c){
+    if (c < 32 || c > 126) c = '?'; // Nieobsługiwane znaki
+
+    const uint8_t *glyph = OledFontTable[(uint8_t)c - 32];
+
+    uint8_t page = y / 8;
+    uint8_t offset = y % 8;
+
+    for (uint8_t i = 0; i < 5; i++)
+    {
+        uint8_t column_data = glyph[i];
+
+        uint8_t upper = column_data << offset;
+        uint8_t lower = column_data >> (8 - offset);
+
+        // Górna strona
+        oled_set_cursor(page, x + i);
+        i2c_write(oled_dev, 1, 0x40, &upper);
+
+        // Dolna strona, jeśli przesunięcie > 0 i strona nie wychodzi poza ekran
+        if (offset && page < 7)
+        {
+            oled_set_cursor(page + 1, x + i);
+            i2c_write(oled_dev, 1, 0x40, &lower);
+        }
+    }
+
+    // Odstęp między znakami
+    oled_set_cursor(page, x + 5);
+    uint8_t spacer = 0x00;
+    i2c_write(oled_dev, 1, 0x40, &spacer);
+}
+
+
+void oled_print_xy(uint8_t x, uint8_t y, const char *str){
+    while (*str)
+    {
+        oled_print_char_xy(x, y, *str);
+        x += 6; // 5 pikseli znak + 1 piksel odstęp
+        str++;
+    }
+}
+
+void oled_printf_xy(uint8_t x, uint8_t y, const char *fmt, ...){
+    char buffer[SSD1306_PRINTF_BUFFER_SIZE];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buffer, sizeof(buffer), fmt, args);
+    va_end(args);
+
+    oled_print_xy(x, y, buffer);
+}
+
+void oled_draw_rectangle(uint8_t x, uint8_t y, uint8_t width, uint8_t height){
+    uint8_t start_page = y / 8;
+    uint8_t end_page = (y + height - 1) / 8;
+
+    uint8_t first_mask = 0xFF << (y % 8);
+    uint8_t last_mask = 0xFF >> (7 - ((y + height - 1) % 8));
+
+    for (uint8_t page = start_page; page <= end_page; page++)
+    {
+        for (uint8_t col = x; col < x + width; col++)
+        {
+            uint8_t data;
+
+            if (start_page == end_page)
+            {
+                data = first_mask & last_mask;
+            }
+            else if (page == start_page)
+            {
+                data = first_mask;
+            }
+            else if (page == end_page)
+            {
+                data = last_mask;
+            }
+            else
+            {
+                data = 0xFF;
+            }
+            oled_set_cursor(page, col);
+            i2c_write(oled_dev, 1, 0x40, &data);
+        }
+    }
+}

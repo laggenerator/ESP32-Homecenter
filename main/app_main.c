@@ -17,6 +17,7 @@
 #include "mqtt_handler.h"
 #include "i2ctest.h"
 #include "ssd1306.h"
+#include "guiDraw.h"
 #include "gpioManagement.h"
 
 #include "setup.h"
@@ -27,7 +28,7 @@
 #define GPIO_OUT_REG     (*(volatile uint32_t *)0x3FF44004)
 
 static const char *TAG = "XYZ";
-static const uint64_t connection_timeout_ms = 10000;
+static const uint64_t connection_timeout_ms = 5000;
 static const uint32_t sleep_time_ms = 5000;
 SemaphoreHandle_t xZmiennaMutex;
 
@@ -82,6 +83,14 @@ void obsluzWiadomosciMQTT(const char* temat, const char* wiadomosc){
 }
 
 uint16_t zmienna = 0;
+Pole_t placeholder = {
+    "Zmienna",
+    0
+};
+Pole_t placeholder2 = {
+    "Zmienna2",
+    0
+};
 void PrzelaczSSR(void *pvParameters){
     task_config_t *config = (task_config_t *)pvParameters;
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -93,15 +102,32 @@ void PrzelaczSSR(void *pvParameters){
         start_time = esp_timer_get_time() / 1000;
         dt = start_time - prev_time;
         prev_time = start_time;
-        // przelaczSwiatlo(5);
         przelaczGPIO(5);
-        oled_clear();
         if(xSemaphoreTake(xZmiennaMutex, portMAX_DELAY) == pdTRUE){
-            oled_printf(0, 0, "Zmienna: %u", zmienna);
+            placeholder.stan = zmienna;
             xSemaphoreGive(xZmiennaMutex);
         }
-        oled_printf(1, 0, "dt: %lu ms", dt);
         ESP_LOGI(TAG, "Przelaczam ;) co %lu ms", dt);
+    }
+}
+
+void odswiezOLED(void *pvParameters){
+    task_config_t *config = (task_config_t *)pvParameters;
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    TickType_t xFreq = pdMS_TO_TICKS(config->okres);
+    int64_t start_time = 0, prev_time = 0;
+    uint16_t dt = 0;
+    while(1){
+        vTaskDelayUntil(&xLastWakeTime, xFreq);
+        start_time = esp_timer_get_time() / 1000;
+        dt = start_time - prev_time;
+        prev_time = start_time;
+        oled_clear();
+        if(xSemaphoreTake(xZmiennaMutex, portMAX_DELAY) == pdTRUE){
+            gui_ekran(&placeholder2, &placeholder, &placeholder2, 1, 12);
+            xSemaphoreGive(xZmiennaMutex);
+        }
+        ESP_LOGI(TAG, "Odświeżam ;) (co %lu ms)", dt);
     }
 }
 
@@ -204,14 +230,27 @@ przycisk_t kabel = {16, GPIO_MODE_INPUT, GPIO_PULLUP_ONLY};
 
 void app_main(void)
 {
+    // Inicjalizacja I2C
+    i2c_master_bus_handle_t bus_handle;
+    i2c_master_init_bus(&bus_handle);
+    oled_init(&bus_handle, true);
+    oled_clear();
     if(strcmp(CONFIG_MQTT_NAZWA_URZADZENIA, "zmienmnie") == 0){
         ESP_LOGE(TAG, "Urzadzenie ma domyslna nazwe, zmien ja aby cokolwiek zrobic!");
+        oled_printf(0, 0, "Zmien");
+        oled_printf(1, 0, "nazwe");
+        oled_printf(2, 0, "urzadzenia");
         while(1);
     }
     if(strcmp(CONFIG_MQTT_NAZWA_RODZINY, "zmienmnie") == 0){
         ESP_LOGE(TAG, "Rodzina urzadzen ma domyslna nazwe, zmien ja aby cokolwiek zrobic!");
+        oled_printf(0, 0, "Zmien");
+        oled_printf(1, 0, "nazwe");
+        oled_printf(2, 0, "rodziny");
+        oled_printf(3, 0, "urzadzen");
         while(1);
     }
+    ESP_LOGW("SYS", "HALOOO");
     esp_err_t esp_ret;
     EventGroupHandle_t network_event_group;
     EventBits_t network_event_bits;
@@ -279,9 +318,6 @@ void app_main(void)
     }
     xTaskCreate(wifi_monitor_task, "Monitoring WiFi", 4096, network_event_group, 1, NULL);
 
-    // Inicjalizacja I2C
-    i2c_master_bus_handle_t bus_handle;
-    i2c_master_init_bus(&bus_handle);
     przyciski_queue = xQueueCreate(10, sizeof(uint8_t));
     if(przyciski_queue == NULL){
         ESP_LOGE("System", "Blad przy tworzeniu przyciski_queue!");
@@ -289,16 +325,17 @@ void app_main(void)
     }
     ESP_LOGI("System", "Inicjalizacja systemu...");
     mqtt_init();
-    oled_init(&bus_handle, true);
     setupPrzycisku(&kabel);
     printf("\n\nhalo\n\n");
     GPIO_ENABLE_REG |= (1<<5);
     task_config_t przelacznik = {"Przelaczanie SSR", 1000};
+    task_config_t ekran = {"Odswiezanie OLED", 1000};
     xZmiennaMutex = xSemaphoreCreateMutex();
     if(xZmiennaMutex == NULL){
         ESP_LOGE("MUTEX", "Błąd przy tworzeniu");
         abort();
     }
-    xTaskCreate(PrzelaczSSR, "Przelaczanie SSR", 4096, &przelacznik, 2, NULL);
+    xTaskCreate(PrzelaczSSR, przelacznik.nazwa, 2048, &przelacznik, 2, NULL);
+    xTaskCreate(odswiezOLED, ekran.nazwa, 2048, &ekran, 2, NULL);
     xTaskCreate(przyciskTask, "Przycisk1", 2048, &kabel, 2, NULL);
 }

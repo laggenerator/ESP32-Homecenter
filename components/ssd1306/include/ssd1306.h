@@ -25,5 +25,10 @@ void oled_print_char(uint8_t page, uint8_t column, char c);
 void oled_print(uint8_t page, uint8_t column, const char *str);
 void oled_printf(uint8_t page, uint8_t column, const char *fmt, ...);
 void oled_clear(void);
+void oled_draw_bitmap(uint8_t x, uint8_t y, const uint8_t *bitmap, uint8_t width, uint8_t height);
+void oled_print_char_xy(uint8_t x, uint8_t y, char c);
+void oled_print_xy(uint8_t x, uint8_t y, const char *str);
+void oled_printf_xy(uint8_t x, uint8_t y, const char *fmt, ...);
+void oled_draw_rectangle(uint8_t x, uint8_t y, uint8_t width, uint8_t height);
 
 #endif

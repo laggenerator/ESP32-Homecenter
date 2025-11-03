@@ -15,6 +15,12 @@ dependencies:
       path: /home/laggenerator/Whole_lotta_shit/Programmin/Mikroprocesory/ESP/ESP32-Homecenter/components/gpioManagement
       type: local
     version: '*'
+  guiDraw:
+    dependencies: []
+    source:
+      path: /home/laggenerator/Whole_lotta_shit/Programmin/Mikroprocesory/ESP/ESP32-Homecenter/components/guiDraw
+      type: local
+    version: '*'
   i2ctest:
     dependencies: []
     source:
@@ -54,12 +60,13 @@ dependencies:
 direct_dependencies:
 - espressif/mqtt
 - gpioManagement
+- guiDraw
 - i2ctest
 - idf
 - mqtt_handler
 - protocol_examples_common
 - ssd1306
 - wifi
-manifest_hash: 495d0b189f6d6ead797deadd442610cca1967559ff6be009e23d3f0d927ead32
+manifest_hash: c9bc9d0db984518c42b4ff1833125e12ca6defae911df47f3c76895af8ad5352
 target: esp32
 version: 2.0.0
