@@ -19,6 +19,8 @@ dependencies:
     path: ../components/guiDraw
   gpioManagement:
     path: ../components/gpioManagement
+  urzadzenia:
+    path: ../components/urzadzenia
   protocol_examples_common:
     path: ${IDF_PATH}/examples/common_components/protocol_examples_common
   espressif/mqtt: ^1.0.0

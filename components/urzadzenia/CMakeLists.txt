@@ -1,5 +1,4 @@
 idf_component_register(
-    SRCS "guiDraw.c"
+    SRCS "urzadzenia.c"
     INCLUDE_DIRS "include"
-    REQUIRES ssd1306 urzadzenia
 )

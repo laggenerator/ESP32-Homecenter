@@ -62,6 +62,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
         connected = true;
         subscribe_all();
         mqtt_handler_publish(1, CONFIG_MQTT_KANAL_KEEPALIVE, "ONLINE");
+        mqtt_handler_publish(1, "broadcast", "start");
         break;
 
     case MQTT_EVENT_DISCONNECTED:
@@ -118,8 +119,10 @@ bool mqtt_handler_is_connected(void)
 
 int mqtt_handler_publish(bool rodzinny, const char *topic, const char *message)
 {
+    ESP_LOGW(TAG, "HALO1");
     if (!connected) return -1;
     int msg_id;
+    ESP_LOGW(TAG, "HALO2");
     if(rodzinny){
         char temat[64];
         snprintf(temat, sizeof(temat), "%s/%s", CONFIG_MQTT_NAZWA_RODZINY, topic);

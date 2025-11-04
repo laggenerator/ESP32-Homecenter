@@ -51,6 +51,12 @@ dependencies:
       path: /home/laggenerator/Whole_lotta_shit/Programmin/Mikroprocesory/ESP/ESP32-Homecenter/components/ssd1306
       type: local
     version: '*'
+  urzadzenia:
+    dependencies: []
+    source:
+      path: /home/laggenerator/Whole_lotta_shit/Programmin/Mikroprocesory/ESP/ESP32-Homecenter/components/urzadzenia
+      type: local
+    version: '*'
   wifi:
     dependencies: []
     source:
@@ -66,7 +72,8 @@ direct_dependencies:
 - mqtt_handler
 - protocol_examples_common
 - ssd1306
+- urzadzenia
 - wifi
-manifest_hash: c9bc9d0db984518c42b4ff1833125e12ca6defae911df47f3c76895af8ad5352
+manifest_hash: 1012f51f734ed9152cd467d776dcfdc1ab3d3b04eec4f924d18b195c3815411c
 target: esp32
 version: 2.0.0

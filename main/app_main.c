@@ -19,6 +19,7 @@
 #include "ssd1306.h"
 #include "guiDraw.h"
 #include "gpioManagement.h"
+#include "urzadzenia.h"
 
 #include "setup.h"
 
@@ -80,17 +81,15 @@ void obsluzWiadomosciMQTT(const char* temat, const char* wiadomosc){
             mqtt_handler_publish(1, "discovery", CONFIG_MQTT_NAZWA_URZADZENIA);
         }
     }
+    else if (strcmp(temat, discovery_topic) == 0) {
+        mqtt_handler_add_topic(1, wiadomosc);
+        dodajUrzadzenie(wiadomosc);
+    }
+
 }
 
 uint16_t zmienna = 0;
-Pole_t placeholder = {
-    "Zmienna",
-    0
-};
-Pole_t placeholder2 = {
-    "Zmienna2",
-    0
-};
+
 void PrzelaczSSR(void *pvParameters){
     task_config_t *config = (task_config_t *)pvParameters;
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -104,7 +103,6 @@ void PrzelaczSSR(void *pvParameters){
         prev_time = start_time;
         przelaczGPIO(5);
         if(xSemaphoreTake(xZmiennaMutex, portMAX_DELAY) == pdTRUE){
-            placeholder.stan = zmienna;
             xSemaphoreGive(xZmiennaMutex);
         }
         ESP_LOGI(TAG, "Przelaczam ;) co %lu ms", dt);
@@ -117,6 +115,7 @@ void odswiezOLED(void *pvParameters){
     TickType_t xFreq = pdMS_TO_TICKS(config->okres);
     int64_t start_time = 0, prev_time = 0;
     uint16_t dt = 0;
+    int8_t currIdx = 0, nextIdx = 0, prevIdx = 0;
     while(1){
         vTaskDelayUntil(&xLastWakeTime, xFreq);
         start_time = esp_timer_get_time() / 1000;
@@ -124,9 +123,18 @@ void odswiezOLED(void *pvParameters){
         prev_time = start_time;
         oled_clear();
         if(xSemaphoreTake(xZmiennaMutex, portMAX_DELAY) == pdTRUE){
-            gui_ekran(&placeholder2, &placeholder, &placeholder2, 1, 12);
+            currIdx = zmienna;
             xSemaphoreGive(xZmiennaMutex);
         }
+        if(liczba_urzadzen != 0){
+            nextIdx = (currIdx+1)%liczba_urzadzen;
+            prevIdx = (currIdx-1)%liczba_urzadzen;
+            if(prevIdx == -1) prevIdx = liczba_urzadzen-1; 
+        } else {
+            nextIdx = currIdx;
+            prevIdx = currIdx;
+        }
+        gui_ekran(&urzadzenia[prevIdx], &urzadzenia[currIdx], &urzadzenia[nextIdx], currIdx, liczba_urzadzen);
         ESP_LOGI(TAG, "Odświeżam ;) (co %lu ms)", dt);
     }
 }
@@ -139,7 +147,10 @@ void przyciskTask(void *pvParameters){
         obecnyStan = gpio_get_level(przycisk->gpio);
         if(obecnyStan != poprzedniStan){
             if(xSemaphoreTake(xZmiennaMutex, portMAX_DELAY) == pdTRUE){
-                zmienna++;
+                if(liczba_urzadzen != 0)
+                    zmienna = (zmienna + 1) % liczba_urzadzen;
+                else 
+                    zmienna = 0;
                 xSemaphoreGive(xZmiennaMutex);
             }
         }
