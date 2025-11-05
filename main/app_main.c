@@ -31,7 +31,7 @@
 static const char *TAG = "XYZ";
 static const uint64_t connection_timeout_ms = 5000;
 static const uint32_t sleep_time_ms = 5000;
-SemaphoreHandle_t xZmiennaMutex;
+SemaphoreHandle_t xCurrentDeviceMutex, xCurrentDeviceToggleMutex;
 
 void wlaczSwiatlo(uint8_t gpio){
   GPIO_OUT_REG |= (1<<gpio);
@@ -51,7 +51,7 @@ typedef struct {
     uint16_t okres;
 } task_config_t;
 
-przycisk_t przyciski[ILE_PRZYCISKOW] = {
+const przycisk_t przyciski[ILE_PRZYCISKOW] = {
     {Input1, GPIO_MODE_INPUT, GPIO_FLOATING},  // Przyisk 1
     {Input2, GPIO_MODE_INPUT, GPIO_FLOATING},  // Przyisk 2
     {Input3, GPIO_MODE_INPUT, GPIO_FLOATING},  // Przyisk 3
@@ -88,7 +88,7 @@ void obsluzWiadomosciMQTT(const char* temat, const char* wiadomosc){
 
 }
 
-uint16_t zmienna = 0;
+int8_t obecnaPozycjaBtn = 0; // Zmienna od wyboru pozycji przyciskami (góra-dół)
 
 void PrzelaczSSR(void *pvParameters){
     task_config_t *config = (task_config_t *)pvParameters;
@@ -102,8 +102,8 @@ void PrzelaczSSR(void *pvParameters){
         dt = start_time - prev_time;
         prev_time = start_time;
         przelaczGPIO(5);
-        if(xSemaphoreTake(xZmiennaMutex, portMAX_DELAY) == pdTRUE){
-            xSemaphoreGive(xZmiennaMutex);
+        if(xSemaphoreTake(xCurrentDeviceMutex, portMAX_DELAY) == pdTRUE){
+            xSemaphoreGive(xCurrentDeviceMutex);
         }
         ESP_LOGI(TAG, "Przelaczam ;) co %lu ms", dt);
     }
@@ -122,9 +122,9 @@ void odswiezOLED(void *pvParameters){
         dt = start_time - prev_time;
         prev_time = start_time;
         oled_clear();
-        if(xSemaphoreTake(xZmiennaMutex, portMAX_DELAY) == pdTRUE){
-            currIdx = zmienna;
-            xSemaphoreGive(xZmiennaMutex);
+        if(xSemaphoreTake(xCurrentDeviceMutex, portMAX_DELAY) == pdTRUE){
+            currIdx = obecnaPozycjaBtn;
+            xSemaphoreGive(xCurrentDeviceMutex);
         }
         if(liczba_urzadzen != 0){
             nextIdx = (currIdx+1)%liczba_urzadzen;
@@ -134,7 +134,11 @@ void odswiezOLED(void *pvParameters){
             nextIdx = currIdx;
             prevIdx = currIdx;
         }
-        gui_ekran(&urzadzenia[prevIdx], &urzadzenia[currIdx], &urzadzenia[nextIdx], currIdx, liczba_urzadzen);
+        // Mutex żeby nie wyświetlić boola "wybranaWartosc" podczas edycji
+        if(xSemaphoreTake(xCurrentDeviceToggleMutex, portMAX_DELAY) == pdTRUE){
+            gui_ekran(&urzadzenia[prevIdx], &urzadzenia[currIdx], &urzadzenia[nextIdx], currIdx, liczba_urzadzen);
+            xSemaphoreGive(xCurrentDeviceMutex);
+        }
         ESP_LOGI(TAG, "Odświeżam ;) (co %lu ms)", dt);
     }
 }
@@ -146,12 +150,12 @@ void przyciskTask(void *pvParameters){
     while(1){
         obecnyStan = gpio_get_level(przycisk->gpio);
         if(obecnyStan != poprzedniStan){
-            if(xSemaphoreTake(xZmiennaMutex, portMAX_DELAY) == pdTRUE){
+            if(xSemaphoreTake(xCurrentDeviceMutex, portMAX_DELAY) == pdTRUE){
                 if(liczba_urzadzen != 0)
-                    zmienna = (zmienna + 1) % liczba_urzadzen;
+                    obecnaPozycjaBtn = (obecnaPozycjaBtn + 1) % liczba_urzadzen;
                 else 
-                    zmienna = 0;
-                xSemaphoreGive(xZmiennaMutex);
+                    obecnaPozycjaBtn = 0;
+                xSemaphoreGive(xCurrentDeviceMutex);
             }
         }
         poprzedniStan = obecnyStan;
@@ -175,18 +179,54 @@ void detekcjaPrzyciskow(void *pvParameters){
 }
 void przyciskiQueueHandler(void *pvParameters){
     uint8_t currVal;
+    int8_t wartosc = 0;
+    char wiadomosc[10];
     while(1){
         if(xQueueReceive(przyciski_queue, &currVal, portMAX_DELAY)){
-            /* cos w stylu przewijanego menu typu 
-            switch(currVal){
-                case 0: w dol
-                current_item = (current_item -1)%ile_itemow
-                case 1: w gore
-                current_item = (current_item +1)%ile_itemow
-                case 2: toggle prawo (lub toggle)
-                case 3: toggle lewo (lub send do toggle wyzszego)
-            }
+            /* cos w stylu przewijanego menu typu
+            gora, dol, (lewo, prawo lub przelacz, potwierdz)
             */
+           switch(currVal){
+                case 0:
+                    if(liczba_urzadzen != 0){
+                        if(xSemaphoreTake(xCurrentDeviceMutex, portMAX_DELAY) == pdTRUE){
+                            obecnaPozycjaBtn = (obecnaPozycjaBtn + 1) % liczba_urzadzen;
+                            xSemaphoreGive(xCurrentDeviceMutex);
+                        }
+                    }
+                    break;
+                case 1:
+                    if(liczba_urzadzen != 0){
+                        if(xSemaphoreTake(xCurrentDeviceMutex, portMAX_DELAY) == pdTRUE){
+                            obecnaPozycjaBtn = (obecnaPozycjaBtn - 1) % liczba_urzadzen;
+                            if(obecnaPozycjaBtn == -1) obecnaPozycjaBtn = liczba_urzadzen-1;
+                            xSemaphoreGive(xCurrentDeviceMutex);
+                        }
+                    }
+                    break;
+                case 2:
+                    // Mutex żeby nie zmienić boola/wartosci podczas renderowania
+                    if(liczba_urzadzen != 0){
+                        if(xSemaphoreTake(xCurrentDeviceToggleMutex, portMAX_DELAY) == pdTRUE){
+                            if(urzadzenia[obecnaPozycjaBtn].przelaczany) 
+                                urzadzenia[obecnaPozycjaBtn].wybranaWartosc = !urzadzenia[obecnaPozycjaBtn].wybranaWartosc;
+                            else
+                                urzadzenia[obecnaPozycjaBtn].wybranaWartosc++;
+                            xSemaphoreGive(xCurrentDeviceMutex);
+                        }
+                    }
+                    break;
+                case 3:
+                    if(liczba_urzadzen != 0){
+                        if(xSemaphoreTake(xCurrentDeviceToggleMutex, portMAX_DELAY) == pdTRUE){
+                            wartosc = urzadzenia[obecnaPozycjaBtn].wybranaWartosc;
+                            sprintf(wiadomosc, "%d", wartosc);
+                            mqtt_handler_publish(1, urzadzenia[obecnaPozycjaBtn].nazwa, wiadomosc);
+                            xSemaphoreGive(xCurrentDeviceMutex);
+                        }
+                    }
+                    break;
+            }
         }
     }
 }
@@ -237,7 +277,7 @@ void wifi_monitor_task(void *pvParameters){
     }
 }
 
-przycisk_t kabel = {16, GPIO_MODE_INPUT, GPIO_PULLUP_ONLY};
+// przycisk_t kabel = {16, GPIO_MODE_INPUT, GPIO_PULLUP_ONLY};
 
 void app_main(void)
 {
@@ -336,17 +376,22 @@ void app_main(void)
     }
     ESP_LOGI("System", "Inicjalizacja systemu...");
     mqtt_init();
-    setupPrzycisku(&kabel);
+    // setupPrzycisku(&kabel);
     printf("\n\nhalo\n\n");
     GPIO_ENABLE_REG |= (1<<5);
     task_config_t przelacznik = {"Przelaczanie SSR", 1000};
     task_config_t ekran = {"Odswiezanie OLED", 1000};
-    xZmiennaMutex = xSemaphoreCreateMutex();
-    if(xZmiennaMutex == NULL){
+    xCurrentDeviceMutex = xSemaphoreCreateMutex();
+    if(xCurrentDeviceMutex == NULL){
+        ESP_LOGE("MUTEX", "Błąd przy tworzeniu");
+        abort();
+    }
+    xCurrentDeviceToggleMutex = xSemaphoreCreateMutex();
+    if(xCurrentDeviceToggleMutex == NULL){
         ESP_LOGE("MUTEX", "Błąd przy tworzeniu");
         abort();
     }
     xTaskCreate(PrzelaczSSR, przelacznik.nazwa, 2048, &przelacznik, 2, NULL);
     xTaskCreate(odswiezOLED, ekran.nazwa, 2048, &ekran, 2, NULL);
-    xTaskCreate(przyciskTask, "Przycisk1", 2048, &kabel, 2, NULL);
+    // xTaskCreate(przyciskTask, "Przycisk1", 2048, &kabel, 2, NULL);
 }

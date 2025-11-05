@@ -2,6 +2,7 @@
 #define SETUP_H
 
 #include "esp_err.h"
+#include "gpioManagement.h"
 
 #define Input1 4
 #define Input2 5

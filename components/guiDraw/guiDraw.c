@@ -8,18 +8,18 @@ void gui_ekran(Urzadzenie_t* gorne_pole, Urzadzenie_t* srodkowe_pole, Urzadzenie
   
   if(srodkowe_pole != NULL){
     oled_printf_xy(10, 28, "%s", srodkowe_pole->nazwa);
-    oled_printf_xy(100, 28, "%d", srodkowe_pole->stan);
+    oled_printf_xy(90, 28, "%d [%d]", srodkowe_pole->stan, srodkowe_pole->wybranaWartosc);
   }
   
   if(allItemsCount > 1){
     if(gorne_pole != NULL){
       oled_printf_xy(8, 6, "%s", gorne_pole->nazwa);
-      oled_printf_xy(98, 6, "%d", gorne_pole->stan);
+      oled_printf_xy(88, 6, "%d", gorne_pole->stan);
     }
     
     if(dolne_pole != NULL){
       oled_printf_xy(8, 50, "%s", dolne_pole->nazwa);
-      oled_printf_xy(98, 50, "%d", dolne_pole->stan);
+      oled_printf_xy(88, 50, "%d", dolne_pole->stan);
     }
   }
 

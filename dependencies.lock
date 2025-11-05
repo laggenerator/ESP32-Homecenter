@@ -75,5 +75,5 @@ direct_dependencies:
 - urzadzenia
 - wifi
 manifest_hash: 1012f51f734ed9152cd467d776dcfdc1ab3d3b04eec4f924d18b195c3815411c
-target: esp32
+target: esp32c3
 version: 2.0.0

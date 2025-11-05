@@ -16,8 +16,10 @@
 #define TAG_URZADZENIA "Urzadzenia"
 
 typedef struct {
-  char nazwa[50];
+  char* nazwa;
   int8_t stan;
+  int8_t wybranaWartosc;
+  bool przelaczany;
 } Urzadzenie_t;
 
 extern uint8_t liczba_urzadzen;
