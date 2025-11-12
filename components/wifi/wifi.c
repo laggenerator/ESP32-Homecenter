@@ -95,9 +95,9 @@ static void on_ip_event(void *arg, esp_event_base_t event_base, int32_t event_id
         ip_event_got_ip_t *event_ip = (ip_event_got_ip_t *)event_data;
         esp_netif_ip_info_t *ip_info = &event_ip->ip_info;
         ESP_LOGI(TAG, "Adres IPv4 zdobyty");
-        ESP_LOGI(TAG, " IP: ", IPSTR, IP2STR(&ip_info->ip));
-        ESP_LOGI(TAG, " Maska: ", IPSTR, IP2STR(&ip_info->netmask));
-        ESP_LOGI(TAG, " Gateway: ", IPSTR, IP2STR(&ip_info->gw));
+        ESP_LOGI(TAG, "IP: " IPSTR, IP2STR(&ip_info->ip));
+        ESP_LOGI(TAG, "Maska: " IPSTR, IP2STR(&ip_info->netmask));
+        ESP_LOGI(TAG, "Gateway: " IPSTR, IP2STR(&ip_info->gw));
         break;
 #endif
         

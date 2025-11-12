@@ -68,7 +68,7 @@ void obsluzWiadomosciMQTT(const char* temat, const char* wiadomosc){
     else if (strcmp(temat, discovery_topic) == 0) {
         mqtt_handler_add_topic(1, wiadomosc);
         dodajUrzadzenie(wiadomosc);
-        xQueueSend(oled_queue, &(broadcast_topic[0]), portMAX_DELAY);
+        xQueueSend(oled_queue, &(int){1}, portMAX_DELAY);
     }
 }
 
@@ -97,7 +97,7 @@ void odswiezOLED(void *pvParameters){
     int8_t currIdx = 0, nextIdx = 0, prevIdx = 0;
     uint8_t currVal;
     while(1){
-        if(xQueueReceive(oled_queue, &currVal, portMAX_DELAY)){
+        if(xQueueReceive(oled_queue, &(int){1}, portMAX_DELAY)){
             oled_clear();
             if(xSemaphoreTake(xCurrentDeviceMutex, portMAX_DELAY) == pdTRUE){
                 currIdx = obecnaPozycjaBtn;
@@ -192,7 +192,7 @@ void przyciskiQueueHandler(void *pvParameters){
                     }
                     break;
             }
-            xQueueSend(oled_queue, &currVal, portMAX_DELAY);
+            xQueueSend(oled_queue, &(int){1}, portMAX_DELAY);
         }
     }
 }
@@ -235,8 +235,6 @@ void wifi_monitor_task(void *pvParameters){
                 ESP_LOGE(TAG, "Ponowne laczenie nie wyszlo, sprobuje za %d", 
                          check_interval / portTICK_PERIOD_MS);
             }
-        } else {
-            ESP_LOGI(TAG, "Jestem tutaj :)");
         }
         
         vTaskDelay(check_interval);
@@ -385,6 +383,7 @@ void app_main(void)
     }
     xTaskCreate(rxb6_przyciskiTask, "RXB6 Przyciski Handler", 2048, NULL, 2, NULL);
     #endif
+    xQueueSend(oled_queue, &(int){1}, portMAX_DELAY);
     xTaskCreate(odswiezOLED, "Odswiezanie OLED", 2048, NULL, 2, NULL);
     xTaskCreate(detekcjaPrzyciskow, "Detekcja przyciskow", 2048, NULL, 2, NULL);
     xTaskCreate(przyciskiQueueHandler, "QueueHandler przyciskow", 2048, NULL, 2, NULL);
