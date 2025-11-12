@@ -45,6 +45,12 @@ dependencies:
       path: /home/laggenerator/esp/esp-idf-v5.5.1/examples/common_components/protocol_examples_common
       type: local
     version: '*'
+  requesty_http:
+    dependencies: []
+    source:
+      path: /home/laggenerator/Whole_lotta_shit/Programmin/Mikroprocesory/ESP/ESP32-Homecenter/components/requesty_http
+      type: local
+    version: '*'
   rxb6:
     dependencies: []
     source:
@@ -77,10 +83,11 @@ direct_dependencies:
 - idf
 - mqtt_handler
 - protocol_examples_common
+- requesty_http
 - rxb6
 - ssd1306
 - urzadzenia
 - wifi
-manifest_hash: 16413176a47d41f040281dca2a284deaf0ffed8b178fb365311909d7815c19e0
+manifest_hash: c2148ab61300253c6531a43687e17674f52281c6da6344f737199d6a3018422b
 target: esp32c3
 version: 2.0.0

@@ -83,3 +83,18 @@ menu "Ustawienia RXB6"
         5 - Verbose
   endif
 endmenu
+
+menu "Rysunkowicz"
+  config RYSUNKOWICZ_ENABLE
+  bool "Uzywac rysunkowicz?"
+  default n
+
+  if RYSUNKOWICZ_ENABLE
+    config RYSUNKOWICZ_URL
+      string "URL rysunkowicza"
+      default "http://rysunkowicz.pwrowicz.pl/"
+    config RYSUNKOWICZ_ENDPOINT
+      string "Endpoint bitmapy"
+      default "bitmapa"
+  endif
+endmenu

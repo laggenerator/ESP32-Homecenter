@@ -20,7 +20,12 @@
 #include "guiDraw.h"
 #include "gpioManagement.h"
 #include "urzadzenia.h"
+#if CONFIG_RXB6_USED
 #include "rxb6.h"
+#endif
+#if CONFIG_RYSUNKOWICZ_ENABLE
+#include "requesty_http.h"
+#endif
 
 #include "setup.h"
 
@@ -43,7 +48,7 @@ const przycisk_t przyciski[ILE_PRZYCISKOW] = {
     {Input4, GPIO_MODE_INPUT, GPIO_FLOATING}   // Przyisk 4
 };
 
-QueueHandle_t przyciski_queue = NULL, oled_queue = NULL;
+QueueHandle_t przyciski_queue = NULL, oled_queue = NULL, rysunkowicz_queue = NULL;
 void ustawPrzyciski(przycisk_t *przyciski){
     for(uint8_t i=0;i < ILE_PRZYCISKOW;i++){
         setupPrzycisku(&przyciski[i]);
@@ -125,6 +130,12 @@ void odswiezOLED(void *pvParameters){
         // start_time = esp_timer_get_time() / 1000;
         // dt = start_time - prev_time;
         // prev_time = start_time;
+        #if CONFIG_RYSUNKOWICZ_ENABLE
+        if(xQueueReceive(rysunkowicz_queue, &(int){1}, portMAX_DELAY)){
+            while(xQueueReceive(oled_queue, &(int){1}, 0) == pdTRUE);
+            http_getRysunkowicz();
+        }
+        #endif
     }
 }
 
@@ -184,9 +195,19 @@ void przyciskiQueueHandler(void *pvParameters){
                 case 3: // wysyłanie
                     if(liczba_urzadzen != 0){
                         if(xSemaphoreTake(xCurrentDeviceToggleMutex, portMAX_DELAY) == pdTRUE){
+                            #if CONFIG_RYSUNKOWICZ_ENABLE
+                            if(strcmp(urzadzenia[obecnaPozycjaBtn].nazwa, "Rysunkowicz") == 0){
+                                xQueueSend(rysunkowicz_queue, &(int){1}, portMAX_DELAY);
+                            } else {
+                                wartosc = urzadzenia[obecnaPozycjaBtn].wybranaWartosc;
+                                sprintf(wiadomosc, "%d", wartosc);
+                                mqtt_handler_publish(1, urzadzenia[obecnaPozycjaBtn].nazwa, wiadomosc);
+                            }
+                            #else
                             wartosc = urzadzenia[obecnaPozycjaBtn].wybranaWartosc;
                             sprintf(wiadomosc, "%d", wartosc);
                             mqtt_handler_publish(1, urzadzenia[obecnaPozycjaBtn].nazwa, wiadomosc);
+                            #endif
                             xSemaphoreGive(xCurrentDeviceToggleMutex);
                         }
                     }
@@ -353,11 +374,18 @@ void app_main(void)
         ESP_LOGE("System", "Blad przy tworzeniu przyciski_queue!");
         abort();
     }
-    oled_queue = xQueueCreate(10, sizeof(uint8_t));
+    oled_queue = xQueueCreate(3, sizeof(uint8_t));
     if(oled_queue == NULL){
         ESP_LOGE("System", "Blad przy tworzeniu oled_queue!");
         abort();
     }
+    #if CONFIG_RYSUNKOWICZ_ENABLE
+    rysunkowicz_queue = xQueueCreate(5, sizeof(uint8_t));
+    if(rysunkowicz_queue == NULL){
+        ESP_LOGE("System", "Blad przy tworzeniu rysunkowicz_queue!");
+        abort();
+    }    
+    #endif
     ESP_LOGI("System", "Inicjalizacja systemu...");
     oled_clear();
     oled_printf(0, 0, "Inicjalizacja");
@@ -384,7 +412,10 @@ void app_main(void)
     xTaskCreate(rxb6_przyciskiTask, "RXB6 Przyciski Handler", 2048, NULL, 2, NULL);
     #endif
     xQueueSend(oled_queue, &(int){1}, portMAX_DELAY);
-    xTaskCreate(odswiezOLED, "Odswiezanie OLED", 2048, NULL, 2, NULL);
-    xTaskCreate(detekcjaPrzyciskow, "Detekcja przyciskow", 2048, NULL, 2, NULL);
-    xTaskCreate(przyciskiQueueHandler, "QueueHandler przyciskow", 2048, NULL, 2, NULL);
+    xTaskCreate(odswiezOLED, "Odswiezanie OLED", 4096, NULL, 2, NULL);
+    xTaskCreate(detekcjaPrzyciskow, "Detekcja przyciskow", 1024, NULL, 2, NULL);
+    xTaskCreate(przyciskiQueueHandler, "QueueHandler przyciskow", 1024, NULL, 2, NULL);
+    #if CONFIG_RYSUNKOWICZ_ENABLE
+    dodajUrzadzenie("Rysunkowicz");
+    #endif
 }

@@ -23,6 +23,8 @@ dependencies:
     path: ../components/urzadzenia
   rxb6:
     path: ../components/rxb6
+  requesty_http:
+    path: ../components/requesty_http
   protocol_examples_common:
     path: ${IDF_PATH}/examples/common_components/protocol_examples_common
   espressif/mqtt: ^1.0.0
