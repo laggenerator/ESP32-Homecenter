@@ -11,5 +11,4 @@
 #define ILE_PRZYCISKOW 4
 #define DOMYSLNY_STAN 0
 
-
 #endif

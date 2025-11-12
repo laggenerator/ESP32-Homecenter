@@ -19,9 +19,30 @@ typedef struct {
   gpio_pull_mode_t tryb;
 } przycisk_t;
 
+/**
+ * @brief Ustawia przycisk na wybrany tryb, domyślnie ustawia pulldown output
+ * @param gpio - numer pina IO
+ * @param kierunek - GPIO_MODE_OUTPUT lub GPIO_MODE_INPUT
+ * @param tryb - GPIO_PULLUP_ONLY, GPIO_PULLDOWN_ONLY, GPIO_FLOATING, GPIO_PULLUP_PULLDOWN
+ */ 
 esp_err_t setupPrzycisku(przycisk_t *przycisk);
+
+/**
+ * @brief Przełącza output pina
+ * @param gpio - numer pina IO
+ */
 esp_err_t przelaczGPIO(gpio_num_t gpio);
+
+/**
+ * @brief Włącza output pina
+ * @param gpio - numer pina IO
+ */
 esp_err_t wlaczGPIO(gpio_num_t gpio);
+
+/**
+ * @brief Wyłącza output pina
+ * @param gpio - numer pina IO
+ */
 esp_err_t wylaczGPIO(gpio_num_t gpio);
 
 

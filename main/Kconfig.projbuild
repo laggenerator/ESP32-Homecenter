@@ -1,29 +1,85 @@
-menu "Ustawienia rodziny MQTT"
+menu "Ustawienia MQTT"
+  config BROKER_URL
+    string "Broker URL"
+    default ""
+    help
+      URL brokera MQTT
 
-config MQTT_NAZWA_RODZINY
-  string "Rodzina MQTT"
-  default "zmienmnie"
-  help
-    Ustaw rodzinę MQTT aby obsługiwać swoje urządzenia
+  config MQTT_USERNAME
+    string "Nazwa uzytkownika MQTT"
+    default ""
+    help
+      Nazwa uzytkownika do autoryzacji MQTT (pozostaw puste jesli nie wymagane)
 
-config MQTT_KANAL_KEEPALIVE
-  string "Temat MQTT do przesyłania keepAlive"
-  default "status"
-  help
-    Ustaw temat do przesyłania keep-alive do brokera.
-    Pełny temat to: rodzina/tematkeepalive
+  config MQTT_PASSWORD
+    string "Haslo MQTT"
+    default ""
+    help
+      Haslo do autoryzacji MQTT (pozostaw puste jesli nie wymagane)
 
-config MQTT_NAZWA_URZADZENIA
-  string "Nazwa urzadzenia do identyfikacji"
-  default "zmienmnie"
-  help
-    Ustaw nazwę urządzenia, aby wiedzieć na co reagować
+  config BROKER_URL_FROM_STDIN
+    bool "Pobierz URL brokera z konsoli"
+    default n
+    help
+      Jesli wlaczone, URL brokera bedzie pobierany z konsoli zamiast z konfiguracji
 
-config MQTT_MASTER
-  bool "1 = master, 0 = slave"
-  default n
-  help
-    Ustaw typ urządzenia.
-    1 = master, 0 = slave
+  config MQTT_NAZWA_RODZINY
+    string "Rodzina MQTT"
+    default "zmienmnie"
+    help
+      Ustaw rodzinę MQTT aby obsługiwać swoje urządzenia
 
+  config MQTT_KANAL_KEEPALIVE
+    string "Temat MQTT do przesyłania keepAlive"
+    default "status"
+    help
+      Ustaw temat do przesyłania keep-alive do brokera.
+      Pełny temat to: rodzina/tematkeepalive
+
+  config MQTT_NAZWA_URZADZENIA
+    string "Nazwa urzadzenia do identyfikacji"
+    default "zmienmnie"
+    help
+      Ustaw nazwę urządzenia, aby wiedzieć na co reagować
+
+  config MQTT_MASTER
+    bool "1 = master, 0 = slave"
+    default n
+    help
+      Ustaw typ urządzenia.
+      1 = master, 0 = slave
+
+endmenu
+
+menu "Ustawienia RXB6"
+  config RXB6_USED
+    bool "Czy RXB6 jest podłączone"
+    default n
+    help
+      Wybierz czy urządzenie wykorzystuje RXB6
+
+  if RXB6_USED
+    config RXB6_GPIO_NUM
+      int "RXB6 GPIO"
+      default -1
+      help
+        Pin do którego podłączono RXB6
+
+    config RXB6_DEBOUNCE_TIME
+      int "Czas debounce inputu w ms"
+      default 50
+      help
+        Minimalny czas pomiędzy rejestrowaniem dwóch kodów
+    config RXB6_LOG_LEVEL
+      int "Log level"
+      range 0 5
+      default 3
+      help
+        0 - Brak logów
+        1 - Błędy (Error)
+        2 - Ostrzeżenia (Warning) 
+        3 - Informacje (Info)
+        4 - Debug
+        5 - Verbose
+  endif
 endmenu
