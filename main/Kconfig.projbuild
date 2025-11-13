@@ -96,5 +96,17 @@ menu "Rysunkowicz"
     config RYSUNKOWICZ_ENDPOINT
       string "Endpoint bitmapy"
       default "bitmapa"
+
+    config RYSUNKOWICZ_LOG_LEVEL
+      int "Log level"
+      range 0 5
+      default 3
+      help
+        0 - Brak logów
+        1 - Błędy (Error)
+        2 - Ostrzeżenia (Warning) 
+        3 - Informacje (Info)
+        4 - Debug
+        5 - Verbose
   endif
 endmenu

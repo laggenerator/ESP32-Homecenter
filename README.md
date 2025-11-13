@@ -17,4 +17,4 @@ Schemat podłączeń dostępny w [**schemat.pdf**](./schemat.pdf)
 Projekt według rad na targach pracy używa driverów zamiast bezpośredniej ingerencji w rejestry.
 Oparty jest o bibliotekę [Espressif-MQTT](https://components.espressif.com/components/espressif/mqtt/versions/1.0.0/readme).
 
-Wykorzystuje przełączniki CherryMX oraz wyświetlacz OLED SH1106.
+Wykorzystuje przełączniki CherryMX oraz wyświetlacz OLED 1.3" (?SSD1306/SH1106?).

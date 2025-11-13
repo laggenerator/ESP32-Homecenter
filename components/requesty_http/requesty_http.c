@@ -1,8 +1,23 @@
 #include "requesty_http.h"
 #include "ssd1306.h"
+#include "esp_log.h"
 static const char *TAG = "HTTP";
 
 #if CONFIG_RYSUNKOWICZ_ENABLE
+// Ustawienie poziomu logowania na podstawie Kconfig
+#if CONFIG_RYSUNKOWICZ_LOG_LEVEL == 0
+    #define RYSUNKOWICZ_LOG_LEVEL ESP_LOG_NONE
+#elif CONFIG_RYSUNKOWICZ_LOG_LEVEL == 1
+    #define RYSUNKOWICZ_LOG_LEVEL ESP_LOG_ERROR
+#elif CONFIG_RYSUNKOWICZ_LOG_LEVEL == 2
+    #define RYSUNKOWICZ_LOG_LEVEL ESP_LOG_WARN
+#elif CONFIG_RYSUNKOWICZ_LOG_LEVEL == 3
+    #define RYSUNKOWICZ_LOG_LEVEL ESP_LOG_INFO
+#elif CONFIG_RYSUNKOWICZ_LOG_LEVEL == 4
+    #define RYSUNKOWICZ_LOG_LEVEL ESP_LOG_DEBUG
+#else
+    #define RYSUNKOWICZ_LOG_LEVEL ESP_LOG_VERBOSE
+#endif
 unsigned char rysunkowicz [] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -76,19 +91,19 @@ static size_t rysunkowicz_offset = 0;
 
 static esp_err_t _http_event_handler(esp_http_client_event_t *event)
 {
-    ESP_LOGI(TAG, "WTFF");
+    esp_log_level_set(TAG, RYSUNKOWICZ_LOG_LEVEL);
     switch (event->event_id) {
         case HTTP_EVENT_ERROR:
             ESP_LOGE(TAG, "HTTP_EVENT_ERROR");
             break;
 
         case HTTP_EVENT_ON_CONNECTED:
-            ESP_LOGI(TAG, "HTTP_EVENT_ON_CONNECTED");
+            ESP_LOG_LEVEL(RYSUNKOWICZ_LOG_LEVEL,TAG, "HTTP_EVENT_ON_CONNECTED");
             rysunkowicz_offset = 0;
             break;
 
         case HTTP_EVENT_ON_DATA:
-            ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA, len=%d", event->data_len);
+            ESP_LOG_LEVEL(RYSUNKOWICZ_LOG_LEVEL,TAG, "HTTP_EVENT_ON_DATA, len=%d", event->data_len);
 
             if (rysunkowicz_offset + event->data_len <= RYSUNKOWICZ_SIZE) {
                 memcpy(&rysunkowicz[rysunkowicz_offset], event->data, event->data_len);
@@ -100,11 +115,11 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *event)
             break;
 
         case HTTP_EVENT_ON_FINISH:
-            ESP_LOGI(TAG, "HTTP_EVENT_ON_FINISH (received %d bytes)", rysunkowicz_offset);
+            ESP_LOG_LEVEL(RYSUNKOWICZ_LOG_LEVEL,TAG, "HTTP_EVENT_ON_FINISH (received %d bytes)", rysunkowicz_offset);
             break;
 
         case HTTP_EVENT_DISCONNECTED:
-            ESP_LOGI(TAG, "HTTP_EVENT_DISCONNECTED");
+            ESP_LOG_LEVEL(RYSUNKOWICZ_LOG_LEVEL,TAG, "HTTP_EVENT_DISCONNECTED");
             break;
 
         default:
@@ -115,6 +130,7 @@ static esp_err_t _http_event_handler(esp_http_client_event_t *event)
 }
 
 void http_getRysunkowicz(){
+    esp_log_level_set(TAG, RYSUNKOWICZ_LOG_LEVEL);
     esp_http_client_config_t config = {
         .url = CONFIG_RYSUNKOWICZ_URL CONFIG_RYSUNKOWICZ_ENDPOINT,
         .event_handler = _http_event_handler,
@@ -124,7 +140,7 @@ void http_getRysunkowicz(){
 
     esp_err_t err = esp_http_client_perform(client);
     if (err == ESP_OK) {
-        ESP_LOGI(TAG, "HTTP GET Status = %d, content_length = %d",
+        ESP_LOG_LEVEL(RYSUNKOWICZ_LOG_LEVEL,TAG, "HTTP GET Status = %d, content_length = %d",
                  esp_http_client_get_status_code(client),
                  esp_http_client_get_content_length(client));
     } else {
@@ -133,36 +149,5 @@ void http_getRysunkowicz(){
 
     esp_http_client_cleanup(client);
     oled_draw_bitmap(0,0, rysunkowicz, 128, 64);
-}
-#else
-static esp_err_t _http_event_handler(esp_http_client_event_t *event){
-    switch (event->event_id) {
-        case HTTP_EVENT_ERROR:
-            ESP_LOGE(TAG, "HTTP_EVENT_ERROR");
-            break;
-        case HTTP_EVENT_ON_CONNECTED:
-            ESP_LOGI(TAG, "HTTP_EVENT_ON_CONNECTED");
-            break;
-        case HTTP_EVENT_HEADER_SENT:
-            ESP_LOGI(TAG, "HTTP_EVENT_HEADER_SENT");
-            break;
-        case HTTP_EVENT_ON_DATA:
-            ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA, len=%d", event->data_len);
-            printf("%.*s", event->data_len, (char *)event->data);
-            break;
-        case HTTP_EVENT_ON_FINISH:
-            ESP_LOGI(TAG, "HTTP_EVENT_ON_FINISH");
-            break;
-        case HTTP_EVENT_DISCONNECTED:
-            ESP_LOGI(TAG, "HTTP_EVENT_DISCONNECTED");
-            break;
-        default:
-            break;
-    }
-    return ESP_FAIL;
-}
-
-void http_getRysunkowicz(){
-    ESP_LOGE(TAG, "Rysunkowicz jest wylaczony w menuconfig!");
 }
 #endif

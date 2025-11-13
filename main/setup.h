@@ -11,4 +11,10 @@
 #define ILE_PRZYCISKOW 4
 #define DOMYSLNY_STAN 0
 
+typedef enum {
+  OLED_DISPLAY,
+  RYSUNKOWICZ_DISPLAY,
+  OLED_CLEAR
+} oled_cmd_t;
+
 #endif

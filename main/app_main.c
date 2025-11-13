@@ -48,10 +48,37 @@ const przycisk_t przyciski[ILE_PRZYCISKOW] = {
     {Input4, GPIO_MODE_INPUT, GPIO_FLOATING}   // Przyisk 4
 };
 
-QueueHandle_t przyciski_queue = NULL, oled_queue = NULL, rysunkowicz_queue = NULL;
+void defaultSetupESP32C3(){
+    przycisk_t doUstawienia[8] = {
+        {GPIO_NUM_2, GPIO_MODE_DISABLE, GPIO_FLOATING},
+        {GPIO_NUM_3, GPIO_MODE_DISABLE, GPIO_FLOATING},
+        {GPIO_NUM_4, GPIO_MODE_DISABLE, GPIO_FLOATING},
+        {GPIO_NUM_5, GPIO_MODE_DISABLE, GPIO_FLOATING},
+        {GPIO_NUM_6, GPIO_MODE_DISABLE, GPIO_FLOATING},
+        {GPIO_NUM_7, GPIO_MODE_DISABLE, GPIO_FLOATING},
+        {GPIO_NUM_8, GPIO_MODE_DISABLE, GPIO_FLOATING},
+        {GPIO_NUM_10, GPIO_MODE_DISABLE, GPIO_FLOATING}
+    };
+    esp_err_t err;
+    for(uint8_t i=0;i<8;i++){
+        err = setupPrzycisku(&doUstawienia[i]);
+        if(err != ESP_OK){
+            ESP_LOGE(TAG, "Błąd przy wyłączaniu GPIO %d", doUstawienia[i].gpio);
+        }
+        ESP_LOGI(TAG, "Wyłączanie GPIO %d", doUstawienia[i].gpio);
+    }   
+    ESP_LOGI(TAG, "Domyślnie wyłączono wszystkie GPIO");
+}
+
+
+QueueHandle_t przyciski_queue = NULL, oled_queue = NULL;
 void ustawPrzyciski(przycisk_t *przyciski){
+    esp_err_t err;
     for(uint8_t i=0;i < ILE_PRZYCISKOW;i++){
-        setupPrzycisku(&przyciski[i]);
+        err = setupPrzycisku(&przyciski[i]);
+        if(err != ESP_OK){
+            ESP_LOGE(TAG, "Błąd przy wyłączaniu GPIO %d", przyciski[i].gpio);
+        }
     }
 };
 
@@ -73,7 +100,7 @@ void obsluzWiadomosciMQTT(const char* temat, const char* wiadomosc){
     else if (strcmp(temat, discovery_topic) == 0) {
         mqtt_handler_add_topic(1, wiadomosc);
         dodajUrzadzenie(wiadomosc);
-        xQueueSend(oled_queue, &(int){1}, portMAX_DELAY);
+        xQueueSend(oled_queue, &(int){0}, portMAX_DELAY);
     }
 }
 
@@ -102,27 +129,38 @@ void odswiezOLED(void *pvParameters){
     int8_t currIdx = 0, nextIdx = 0, prevIdx = 0;
     uint8_t currVal;
     while(1){
-        if(xQueueReceive(oled_queue, &(int){1}, portMAX_DELAY)){
-            oled_clear();
-            if(xSemaphoreTake(xCurrentDeviceMutex, portMAX_DELAY) == pdTRUE){
-                currIdx = obecnaPozycjaBtn;
-                xSemaphoreGive(xCurrentDeviceMutex);
-            }
-            if(liczba_urzadzen != 0){
-                nextIdx = (currIdx+1)%liczba_urzadzen;
-                prevIdx = (currIdx-1)%liczba_urzadzen;
-                if(prevIdx == -1) prevIdx = liczba_urzadzen-1; 
-                // Mutex żeby nie wyświetlić boola "wybranaWartosc" podczas edycji
-                if(xSemaphoreTake(xCurrentDeviceToggleMutex, portMAX_DELAY) == pdTRUE){
-                    gui_ekran(&urzadzenia[prevIdx], &urzadzenia[currIdx], &urzadzenia[nextIdx], currIdx, liczba_urzadzen);
-                    xSemaphoreGive(xCurrentDeviceToggleMutex);
+        if(xQueueReceive(oled_queue, &currVal, portMAX_DELAY)){
+            switch (currVal){
+            case 0:
+                oled_clear();
+                if(xSemaphoreTake(xCurrentDeviceMutex, portMAX_DELAY) == pdTRUE){
+                    currIdx = obecnaPozycjaBtn;
+                    xSemaphoreGive(xCurrentDeviceMutex);
                 }
-            } else {
-                nextIdx = currIdx;
-                prevIdx = currIdx;
-                oled_printf(0, 0, "Nie wykryto");
-                oled_printf(1, 0, "urzadzen");
-                oled_printf(2, 0, "podrzednych!");
+                if(liczba_urzadzen != 0){
+                    nextIdx = (currIdx+1)%liczba_urzadzen;
+                    prevIdx = (currIdx-1)%liczba_urzadzen;
+                    if(prevIdx == -1) prevIdx = liczba_urzadzen-1; 
+                    // Mutex żeby nie wyświetlić boola "wybranaWartosc" podczas edycji
+                    if(xSemaphoreTake(xCurrentDeviceToggleMutex, portMAX_DELAY) == pdTRUE){
+                        gui_ekran(&urzadzenia[prevIdx], &urzadzenia[currIdx], &urzadzenia[nextIdx], currIdx, liczba_urzadzen);
+                        xSemaphoreGive(xCurrentDeviceToggleMutex);
+                    }
+                } else {
+                    nextIdx = currIdx;
+                    prevIdx = currIdx;
+                    oled_printf(0, 0, "Nie wykryto");
+                    oled_printf(1, 0, "urzadzen");
+                    oled_printf(2, 0, "podrzednych!");
+                }
+                break;
+            
+            case 1:
+                http_getRysunkowicz();
+                break;
+            case 2:
+                oled_clear();
+                break;
             }
             // ESP_LOGI(TAG, "Odświeżam ;) (co %lu ms)", dt);
         }
@@ -130,18 +168,21 @@ void odswiezOLED(void *pvParameters){
         // start_time = esp_timer_get_time() / 1000;
         // dt = start_time - prev_time;
         // prev_time = start_time;
-        #if CONFIG_RYSUNKOWICZ_ENABLE
-        if(xQueueReceive(rysunkowicz_queue, &(int){1}, portMAX_DELAY)){
-            while(xQueueReceive(oled_queue, &(int){1}, 0) == pdTRUE);
-            http_getRysunkowicz();
-        }
-        #endif
     }
 }
 
 void detekcjaPrzyciskow(void *pvParameters){
     bool stany_przyciskow[ILE_PRZYCISKOW] = {DOMYSLNY_STAN};
     bool prev_stany_przyciskow[ILE_PRZYCISKOW] = {DOMYSLNY_STAN};
+    esp_err_t err;
+    for(uint8_t i=0;i<ILE_PRZYCISKOW;i++){
+        err = setupPrzycisku(&przyciski[i]);
+        if(err != ESP_OK){
+            ESP_LOGE(TAG, "Błąd przy wyłączaniu GPIO %d", przyciski[i].gpio);
+        } else {
+            ESP_LOGI(TAG, "Ustawiono przycisk %u", i);
+        }
+    }
     while(1){
         for(uint8_t i=0;i<ILE_PRZYCISKOW;i++){
             stany_przyciskow[i] = gpio_get_level(przyciski[i].gpio);
@@ -162,6 +203,7 @@ void przyciskiQueueHandler(void *pvParameters){
             /* cos w stylu przewijanego menu typu
             gora, dol, (lewo, prawo lub przelacz, potwierdz)
             */
+           oled_cmd_t komenda = OLED_DISPLAY;
            switch(currVal){
                case 0: // w góre
                    if(liczba_urzadzen != 0){
@@ -197,7 +239,7 @@ void przyciskiQueueHandler(void *pvParameters){
                         if(xSemaphoreTake(xCurrentDeviceToggleMutex, portMAX_DELAY) == pdTRUE){
                             #if CONFIG_RYSUNKOWICZ_ENABLE
                             if(strcmp(urzadzenia[obecnaPozycjaBtn].nazwa, "Rysunkowicz") == 0){
-                                xQueueSend(rysunkowicz_queue, &(int){1}, portMAX_DELAY);
+                                komenda = RYSUNKOWICZ_DISPLAY;
                             } else {
                                 wartosc = urzadzenia[obecnaPozycjaBtn].wybranaWartosc;
                                 sprintf(wiadomosc, "%d", wartosc);
@@ -213,7 +255,7 @@ void przyciskiQueueHandler(void *pvParameters){
                     }
                     break;
             }
-            xQueueSend(oled_queue, &(int){1}, portMAX_DELAY);
+            xQueueSend(oled_queue, &komenda, portMAX_DELAY);
         }
     }
 }
@@ -266,6 +308,7 @@ void wifi_monitor_task(void *pvParameters){
 
 void app_main(void)
 {
+    defaultSetupESP32C3();
     // Inicjalizacja I2C
     i2c_master_bus_handle_t bus_handle;
     i2c_master_init_bus(&bus_handle);
@@ -379,13 +422,6 @@ void app_main(void)
         ESP_LOGE("System", "Blad przy tworzeniu oled_queue!");
         abort();
     }
-    #if CONFIG_RYSUNKOWICZ_ENABLE
-    rysunkowicz_queue = xQueueCreate(5, sizeof(uint8_t));
-    if(rysunkowicz_queue == NULL){
-        ESP_LOGE("System", "Blad przy tworzeniu rysunkowicz_queue!");
-        abort();
-    }    
-    #endif
     ESP_LOGI("System", "Inicjalizacja systemu...");
     oled_clear();
     oled_printf(0, 0, "Inicjalizacja");
@@ -411,10 +447,10 @@ void app_main(void)
     }
     xTaskCreate(rxb6_przyciskiTask, "RXB6 Przyciski Handler", 2048, NULL, 2, NULL);
     #endif
-    xQueueSend(oled_queue, &(int){1}, portMAX_DELAY);
+    xQueueSend(oled_queue, &(int){0}, portMAX_DELAY);
     xTaskCreate(odswiezOLED, "Odswiezanie OLED", 4096, NULL, 2, NULL);
-    xTaskCreate(detekcjaPrzyciskow, "Detekcja przyciskow", 1024, NULL, 2, NULL);
-    xTaskCreate(przyciskiQueueHandler, "QueueHandler przyciskow", 1024, NULL, 2, NULL);
+    xTaskCreate(detekcjaPrzyciskow, "Detekcja przyciskow", 2048, NULL, 2, NULL);
+    xTaskCreate(przyciskiQueueHandler, "QueueHandler przyciskow", 4096, NULL, 2, NULL);
     #if CONFIG_RYSUNKOWICZ_ENABLE
     dodajUrzadzenie("Rysunkowicz");
     #endif
