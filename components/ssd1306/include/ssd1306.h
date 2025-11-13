@@ -30,5 +30,6 @@ void oled_print_char_xy(uint8_t x, uint8_t y, char c);
 void oled_print_xy(uint8_t x, uint8_t y, const char *str);
 void oled_printf_xy(uint8_t x, uint8_t y, const char *fmt, ...);
 void oled_draw_rectangle(uint8_t x, uint8_t y, uint8_t width, uint8_t height);
+void oled_invert_colors(bool invert);
 
 #endif

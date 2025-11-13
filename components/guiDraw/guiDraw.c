@@ -50,5 +50,5 @@ void gui_scroll(uint8_t currentItemNum, uint8_t allItemsCount){
   if(allItemsCount == 0) return;
   uint8_t wys = (1.0 / allItemsCount) * 64;
   uint8_t start_y = wys * currentItemNum;
-  oled_draw_rectangle(126, start_y, 1, wys);
+  oled_draw_rectangle(127, start_y, 1, wys);
 }

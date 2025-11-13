@@ -140,9 +140,15 @@ void oled_init(i2c_master_bus_handle_t *bus_handle, bool isSSD1306) {
     ESP_LOGI(TAG, "Zainicjalizowano ekran OLED");
 }
 
+void oled_invert_colors(bool invert) {
+    uint8_t cmd = invert ? 0xA7 : 0xA6; // 0xA7 - inverted, 0xA6 - normalne
+    i2c_write(oled_dev, 1, 0x00, &cmd);
+}
+
 void oled_set_cursor(uint8_t page, uint8_t column) {
     uint8_t cmds[3];
     cmds[0] = 0xB0 | (page & 0x07);
+    column += 2;
     // Zawsze daje true ale bez tego nie dziala XD
     if (g_isSSD1306) {
         // SSD1306

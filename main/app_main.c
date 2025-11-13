@@ -314,6 +314,7 @@ void app_main(void)
     i2c_master_init_bus(&bus_handle);
     oled_init(&bus_handle, true);
     oled_clear();
+    oled_invert_colors(false);
     if(strcmp(CONFIG_MQTT_NAZWA_URZADZENIA, "zmienmnie") == 0){
         ESP_LOGE(TAG, "Urzadzenie ma domyslna nazwe, zmien ja aby cokolwiek zrobic!");
         oled_printf(0, 0, "Zmien");
